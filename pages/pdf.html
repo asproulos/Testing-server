@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
+    <title>Document</title>
+</head>
+
+<body>
+    <script>
+        const urls = [window.location.href];
+        document.addEventListener("click", function () {
+            let callback = function (domElement) {
+                while (domElement && domElement.parentElement) {
+                    domElement = domElement.parentElement;
+                }
+                let newWindow = window.open('', '', 'width=600,height=800');
+                if (!newWindow) {
+                    console.error(newWindow);
+                    return;
+                }
+                newWindow.document.write(domElement.outerHTML);
+                newWindow.document.close();
+                newWindow.focus();
+                setTimeout(function () { 
+                    newWindow.print();
+                }, 100);
+            };
+            let index = 0;
+            let printDom = document.createElement("html");
+            let newHead = document.head.cloneNode(true);
+            printDom.appendChild(newHead);
+            let newBody = document.createElement("body");
+            printDom.appendChild(newBody)
+
+            callURLs(urls, index, callback, newBody);
+        });
+
+        /**
+         * @param {Array<string>} urls
+         * @param {number} index
+         * @param {Function} callback
+         * @param {HTMLElement} dom
+         */
+        function callURLs(urls, index, callback, dom) {
+            if (!dom) dom = document.createElement("div");
+            let url = urls[index];
+            if (url) {
+                $.ajax({
+                    url: url,
+                    success: function (response) {
+                        var body = response.split("<body");
+                        body = body[1];
+                        body = body.split("</body>");
+                        body = body[0];
+                        var tempDiv = document.createElement("div");
+                        tempDiv.innerHTML = body;
+
+                        /*
+                        let elementIWantToKeep = tempDiv.querySelector(".my-selector");
+                        dom.appendChild(elementIWantToKeep);
+                        */
+
+                        dom.appendChild(tempDiv);
+                        callURLs(urls, ++index, callback, dom);
+                    },
+                    error: function (error) {
+                        console.error(error);
+                    }
+                })
+            } else {
+                callback(dom);
+            }
+        }
+    </script>
+</body>
+
+</html>

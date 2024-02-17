@@ -1,0 +1,7 @@
+cordova
+node_modules
+.vscode
+upload/*
+sslcert/*
+ngrok.exe
+Fietsersbond.apk

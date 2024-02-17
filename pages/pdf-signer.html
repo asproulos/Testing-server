@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <img id="pdf-page" src="/public/gradu03463.png" alt="test">
+    <canvas id="signature" width=200 height=200 style="border: 1px solid black;"></canvas>
+    <button id="clear">Clear</button>
+    <br>
+    <br>
+    <input type="text" name="fileName" id="fileName">
+    <button id="submit" type="submit">Send image to server</button>
+    <script>
+        /** @type {HTMLImageElement} */
+        let img = document.querySelector("#pdf-page");
+        let imgBox;
+        /** @type {HTMLCanvasElement} */
+        let canvas = document.querySelector("#signature");
+        let context = canvas.getContext("2d")
+        document.addEventListener("DOMContentLoaded", function () {
+            let isSigning = false;
+
+            img.addEventListener("load", function (event) {
+                imgBox = img.getBoundingClientRect();
+                resetImage();
+            });
+            img.src = img.src;
+
+            let clear = document.querySelector("#clear");
+            clear.addEventListener("click", function (event) {
+                resetImage();
+            });
+            // Touch/ click
+            canvas.addEventListener("mousedown", function () {
+                isSigning = true;
+                let mousePos = getMousePos(canvas, event);
+                context.moveTo(mousePos.x, mousePos.y);
+            });
+            canvas.addEventListener("touchstart", function () {
+                let touches = event.touches;
+                console.log(event)
+                if (touches.length > 1) return;
+
+                isSigning = true;
+                let mousePos = getMousePos(canvas, touches[0]);
+                context.moveTo(mousePos.x, mousePos.y);
+            });
+
+            // End touch/ click
+            canvas.addEventListener("mouseup", function () {
+                isSigning = false;
+            });
+            canvas.addEventListener("touchend", function () {
+                isSigning = false;
+            });
+
+            // Draw on move
+            canvas.addEventListener("mousemove", function (event) {
+                if (!isSigning) return;
+
+                let mousePos = getMousePos(canvas, event);
+                context.ellipse(mousePos.x, mousePos.y, 1, 1, 0, 0, 0);
+                context.stroke();
+            });
+            canvas.addEventListener("touchmove", function (event) {
+                if (!isSigning) return;
+                let touches = event.touches;
+                if (touches.length > 1) return;
+
+                event.preventDefault();
+                let mousePos = getMousePos(canvas, touches[0]);
+                context.ellipse(mousePos.x, mousePos.y, 1, 1, 0, 0, 0);
+                context.stroke();
+            });
+
+            let button = document.querySelector("#submit");
+            button.addEventListener("click", function () {
+                const toDataURL = url => fetch(url)
+                    .then(response => response.blob())
+                    .then(blob => new Promise((resolve, reject) => {
+                        const reader = new FileReader()
+                        reader.onloadend = () => resolve(reader.result)
+                        reader.onerror = reject
+                        reader.readAsDataURL(blob)
+                    }));
+
+                toDataURL(canvas.toDataURL()).then((dataUrl) => {
+                    const formData = new FormData();
+                    const blob = new Blob([dataUrl], { type: "text/plain" });
+                    formData.append("myFile", blob);
+                    let targetURL = "/pdfimage";
+                    let filename = document.querySelector("#fileName");
+                    if (filename && filename.value) targetURL = targetURL + "?fileName=" + filename.value;
+                    fetch(targetURL, {
+                        method: 'POST',
+                        body: formData
+                    }).then((res) => console.log(res))
+                        .catch((err) => ("Error occured", err));
+                });
+            })
+        });
+
+        function resetImage() {
+
+            canvas.width = imgBox.width;
+            canvas.height = imgBox.height;
+            context.drawImage(img, 0, 0);
+
+            img.style.display = "none";
+        }
+
+        function getMousePos(canvas, evt) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+    </script>
+</body>
+
+</html>
